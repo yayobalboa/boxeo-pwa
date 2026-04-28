@@ -1,0 +1,15 @@
+{
+  "name": "Boxeando por la Paz",
+  "short_name": "Boxeando",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#1e5b4f",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3593/3593455.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
