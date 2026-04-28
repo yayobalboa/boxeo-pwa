@@ -501,6 +501,9 @@ function evaluarKillSwitches() {
     } else if (document.getElementById('selectQuiere').value === "NO") {
         killReasonGlobal = "Cuestionario cerrado debido a que el Tutor declara no querer participar";
         killId = "selectQuiere";
+        exceptions = ["nombrePersonaAtiende", "observaciones_generales", "selectTutorPresente", "selectQuiere", "fotoIneAnverso", "fotoIneReverso", "fotoTutorFile"]; 
+        // Agregamos explícitamente los campos que SÍ debieron llenarse ANTES de llegar a la pregunta de "Quiere participar", para que la barredora no los toque.
+        // Como los emails están DESPUÉS, la barredora los atrapará y los bloqueará automáticamente.
         btnSubmit.innerText = "ENVIAR - TUTOR DECLINA";
     } else {
         btnSubmit.innerText = "FINALIZAR REPORTE";
