@@ -1,4 +1,4 @@
-const CACHE_NAME = 'boxeo-pwa-v5';
+const CACHE_NAME = 'boxeo-pwa-v6'; 
 const urlsToCache = [
   '/',
   '/index.html',
@@ -16,11 +16,22 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
+  // ESTA ES LA RUTINA DE LIMPIEZA MÁGICA
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
   event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('fetch', event => {
-  // Ignorar las peticiones a la API de Google Apps Script
   if (event.request.url.includes("script.google.com")) {
       return; 
   }
