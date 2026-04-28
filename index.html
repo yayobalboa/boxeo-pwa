@@ -7,21 +7,13 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Etiquetas PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e5b4f">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3593/3593455.png">
+    <link rel="apple-touch-icon" href="logo.png">
 
     <style>
         :root { --vino: #9b2247; --verde: #1e5b4f; --dorado: #a57f2c; --bg-color: #f4f7f6; --success-color: #198754; --error-color: #dc3545; }
-        
-        body { 
-            background-color: var(--bg-color); 
-            font-family: 'Noto Sans', sans-serif; 
-            padding-bottom: 20px; 
-            overscroll-behavior-y: none; /* Bloqueo de recarga táctil */
-        }
-        
+        body { background-color: var(--bg-color); font-family: 'Noto Sans', sans-serif; padding-bottom: 20px; overscroll-behavior-y: none; }
         .banner-legal { position: sticky; top: 0; z-index: 1050; background-color: #f8f9fa; border-bottom: 4px solid var(--dorado); color: #333; font-size: 0.8rem; font-weight: 700; text-align: center; padding: 12px 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-transform: uppercase; }
         .container-fluid { padding: 20px 10px; }
         .card { border-radius: 12px; border: 1px solid #dee2e6; box-shadow: 0 8px 24px rgba(0,0,0,0.12); overflow: hidden; }
@@ -41,7 +33,6 @@
         .timestamp-banner { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 8px; font-weight: bold; text-align: center; margin-bottom: 15px; }
         .foto-destacada { border: 2px dashed var(--verde); background-color: #eaf1f0; }
         .char-counter { font-size: 0.75rem; font-weight: bold; float: right; color: #6c757d; }
-        
         #offline-alert { display:none; position:fixed; top:45px; left:0; width:100%; z-index:2000; border-radius:0; margin:0; }
         .queue-badge { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 1rem; padding: 10px 20px; }
     </style>
@@ -112,18 +103,14 @@
                             </div>
 
                             <div id="divObsSubTipo" class="col-12 hidden-field">
-                                <label class="form-label fw-bold">Observaciones de estos subtipos (Mín. 20 caracteres) *</label>
-                                <span class="char-counter" id="counter_subtipo">0 / 20</span>
-                                <textarea id="obs_subtipo" name="obs_subtipo" class="form-control uppercase clean-input" rows="2" placeholder="Describa el lugar detalladamente..." oninput="actualizarContador(this, 20, 'counter_subtipo')"></textarea>
+                                <label class="form-label fw-bold">Observaciones de estos subtipos (Mín. 10 caracteres) *</label>
+                                <span class="char-counter" id="counter_subtipo">0 / 10</span>
+                                <textarea id="obs_subtipo" name="obs_subtipo" class="form-control uppercase clean-input" rows="2" placeholder="Describa el lugar detalladamente..." oninput="actualizarContador(this, 10, 'counter_subtipo')"></textarea>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <label class="form-label fw-bold">Nombre de Tutor</label>
                                 <input type="text" id="inputTutorRegistro" name="inputTutorRegistro" class="form-control bg-light" readonly placeholder="Se asigna automáticamente">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Correo electrónico del tutor *</label>
-                                <input type="email" id="email_tutor" name="email_tutor" class="form-control" required placeholder="ejemplo@correo.com">
                             </div>
                             
                             <div class="col-12">
@@ -154,8 +141,8 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-6"><label class="form-label fw-bold text-primary">Fotografía fachada 1 *</label><input type="file" id="fotoFachada1" name="fotoFachada1" class="form-control" accept="image/*" required></div>
-                            <div class="col-md-6"><label class="form-label fw-bold text-primary">Fotografía fachada 2 *</label><input type="file" id="fotoFachada2" name="fotoFachada2" class="form-control" accept="image/*" required></div>
+                            <div class="col-md-6"><label class="form-label fw-bold text-primary">Fotografía fachada exterior 1 *</label><input type="file" id="fotoFachada1" name="fotoFachada1" class="form-control" accept="image/*" required></div>
+                            <div class="col-md-6"><label class="form-label fw-bold text-primary">Fotografía fachada exterior 2 *</label><input type="file" id="fotoFachada2" name="fotoFachada2" class="form-control" accept="image/*" required></div>
                             
                             <div class="col-12 text-center">
                                 <div class="box-validation" id="boxAbierta">
@@ -186,9 +173,18 @@
                             
                             <div class="col-12">
                                 <div class="p-3 mb-2 rounded foto-destacada">
-                                    <label class="form-label fw-bold text-primary">📷 Evidencia fotográfica con el Tutor(a) *</label>
+                                    <label class="form-label fw-bold text-primary">📷 Selfie del Tutor *</label>
                                     <input type="file" class="form-control border-success" id="fotoTutorFile" name="fotoTutorFile" accept="image/*" required>
                                 </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Correo electrónico del tutor *</label>
+                                <input type="email" id="email_tutor" name="email_tutor" class="form-control validate-email" required placeholder="ejemplo@correo.com" pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Correo electrónico adicional *</label>
+                                <input type="email" id="email_adicional" name="email_adicional" class="form-control validate-email" required placeholder="ejemplo2@correo.com" pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$">
                             </div>
                             
                             <div class="col-12">
@@ -242,7 +238,7 @@
                                 <input type="number" id="capacidad_total_tutor" name="capacidad_total_tutor" class="form-control" required min="1" step="1" placeholder="Ej. 15">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">¿Cuántos alumnos CONFIRMAS que puedan atender por clase? *</label>
+                                <label class="form-label fw-bold">De acuerdo a lo observado por el Enlace de Operación Territorial ¿Cuántos alumnos consideras que puede atender la sucursal por clase? *</label>
                                 <input type="number" id="capacidad_confirmada" name="capacidad_confirmada" class="form-control" required min="1" step="1" placeholder="Ej. 15">
                             </div>
 
@@ -301,6 +297,22 @@
                     <div class="tab-pane fade" id="pane3">
                         <span class="section-title">Validación Final de Visita y Documentos</span>
                         <div class="row g-3">
+                            
+                            <div class="col-12 mt-3">
+                                <div class="box-validation" id="boxCoincideGym">
+                                    <label class="form-label fw-bold">¿El nombre del gimnasio coincide con el registrado? *</label>
+                                    <select id="selectCoincideGym" name="selectCoincideGym" class="form-select" onchange="toggleCoincideGym()" required>
+                                        <option value="" selected disabled>...</option>
+                                        <option value="SÍ">SÍ</option>
+                                        <option value="NO">NO</option>
+                                    </select>
+                                    <div id="divNuevoGym" class="hidden-field mt-3">
+                                        <label class="form-label fw-bold text-danger">Introduce el nombre correcto del gimnasio *</label>
+                                        <input type="text" id="inputNuevoGym" name="inputNuevoGym" class="form-control uppercase clean-input">
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="col-md-4"><label class="form-label fw-bold text-primary">Evidencia Espacio 1 *</label><input type="file" id="fotoEspacio" name="fotoEspacio" class="form-control" accept="image/*" required></div>
                             <div class="col-md-4"><label class="form-label fw-bold text-primary">Evidencia Espacio 2 *</label><input type="file" id="fotoEspacio2" name="fotoEspacio2" class="form-control" accept="image/*" required></div>
                             <div class="col-md-4"><label class="form-label fw-bold text-primary">Evidencia Espacio 3 *</label><input type="file" id="fotoEspacio3" name="fotoEspacio3" class="form-control" accept="image/*" required></div>
