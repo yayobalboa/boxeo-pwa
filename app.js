@@ -501,9 +501,6 @@ function evaluarKillSwitches() {
     } else if (document.getElementById('selectQuiere').value === "NO") {
         killReasonGlobal = "Cuestionario cerrado debido a que el Tutor declara no querer participar";
         killId = "selectQuiere";
-        exceptions = ["nombrePersonaAtiende", "observaciones_generales", "selectTutorPresente", "selectQuiere", "fotoIneAnverso", "fotoIneReverso", "fotoTutorFile"]; 
-        // Agregamos explícitamente los campos que SÍ debieron llenarse ANTES de llegar a la pregunta de "Quiere participar", para que la barredora no los toque.
-        // Como los emails están DESPUÉS, la barredora los atrapará y los bloqueará automáticamente.
         btnSubmit.innerText = "ENVIAR - TUTOR DECLINA";
     } else {
         btnSubmit.innerText = "FINALIZAR REPORTE";
@@ -518,7 +515,6 @@ function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
     const allElements = Array.from(form.querySelectorAll('input:not([type="hidden"]), select, textarea'));
     const triggerIndex = allElements.findIndex(el => el.id === triggerId);
     
-    // 1. Barrido normal hacia abajo
     for (let i = triggerIndex + 1; i < allElements.length; i++) {
         const el = allElements[i];
         if (exceptIDs.includes(el.id)) continue; 
@@ -539,21 +535,8 @@ function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
             el.value = reason;
         }
     }
-
-    // 2. ATAQUE HACIA ARRIBA (Para apagar los correos si el tutor declina)
-    if (triggerId === "selectQuiere") {
-        ["email_tutor", "email_adicional"].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.required = false;
-                const box = el.closest('div[class^="col-"]');
-                if (box) box.classList.add('section-disabled');
-                if (el.type === "email") el.type = "text";
-                el.value = reason;
-            }
-        });
-    }
 }
+
 function rehabilitarTodo() {
     form.querySelectorAll('.section-disabled').forEach(el => el.classList.remove('section-disabled'));
     const allElements = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
