@@ -791,4 +791,3 @@ window.onbeforeunload = function(e) {
         return warningQueue;
     }
 };
-</script>
