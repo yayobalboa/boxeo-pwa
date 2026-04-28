@@ -1,53 +1,37 @@
-// ==========================================
-// CONFIGURACIÓN DE LA PWA Y LA API
-// ==========================================
-// ¡Tu URL ya está insertada aquí correctamente!
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyI0-gSyeSI4UpBWQINfatmK8iULJBPwRJE-BVIpXIp57SXbeM-vrO2VP739yGdWpKM/exec";
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('PWA Lista y registrada', reg))
+      .then(reg => console.log('PWA registrada', reg))
       .catch(err => console.warn('PWA Falló', err));
   });
 }
 
 const server = {
-    getDatos: async function(successCallback, failureCallback) {
-        try {
-            const res = await fetch(GAS_URL + "?action=getDatos", {
-                method: "GET",
-                redirect: "follow"
+    getDatos: function(successCallback, failureCallback) {
+        fetch(GAS_URL + "?action=getDatos")
+            .then(res => res.json())
+            .then(data => { if(successCallback) successCallback(data); })
+            .catch(e => {
+                console.error(e);
+                if(failureCallback) failureCallback(e);
             });
-            const text = await res.text(); 
-            const data = JSON.parse(text); 
-            if(successCallback) successCallback(data);
-        } catch (e) {
-            console.error("Error en getDatos:", e);
-            if(failureCallback) failureCallback(e);
-        }
     },
-    postData: async function(payload, successCallback, failureCallback) {
-        try {
-            const res = await fetch(GAS_URL, {
-                method: "POST",
-                redirect: "follow", 
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
-            });
-            const text = await res.text();
-            const data = JSON.parse(text);
-            if(successCallback) successCallback(data);
-        } catch (e) {
-            console.error("Error en postData:", e);
+    postData: function(payload, successCallback, failureCallback) {
+        fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => { if(successCallback) successCallback(data); })
+        .catch(e => {
+            console.error(e);
             if(failureCallback) failureCallback(e);
-        }
+        });
     }
 };
 
-// ==========================================
-// VARIABLES GLOBALES
-// ==========================================
 const form = document.getElementById('formReporte');
 const btnSubmit = document.getElementById('btnFinalizar');
 
@@ -61,9 +45,6 @@ let geo_acc = "-";
 let killReasonGlobal = "";
 let pendientesCountGlobal = 0; 
 
-// ==========================================
-// NORMALIZACIÓN DE TEXTO
-// ==========================================
 document.addEventListener('input', function (e) {
     const el = e.target;
     if ((el.tagName === 'INPUT' && el.type === 'text' || el.tagName === 'TEXTAREA') && !el.classList.contains('clean-direccion')) {
@@ -82,9 +63,6 @@ document.addEventListener('blur', function(e) {
     }
 }, true);
 
-// ==========================================
-// EVENTOS DE CARGA (ONLOAD)
-// ==========================================
 window.addEventListener('load', () => {
     capturarGeolocalizacion();
     revisarPendientes();
@@ -103,27 +81,22 @@ window.addEventListener('load', () => {
     if(document.getElementById('timestamp')) document.getElementById('timestamp').value = str;
     
     const banner = document.getElementById('bannerFecha');
-    if(banner) {
-        banner.innerText = "Sincronizando con base de datos...";
-    }
+    if(banner) banner.innerText = "Sincronizando con base de datos...";
 
-    // Llamada al Backend de Google
     server.getDatos(
         (data) => {
             if(data.ERROR) { 
-                console.error(data.ERROR);
-                if(banner) banner.innerHTML = "❌ Error de conexión. <button onclick='location.reload()'>Reintentar</button>";
+                if(banner) banner.innerHTML = "❌ Error: " + data.ERROR;
                 return; 
             }
             if(banner) banner.innerText = "Fecha y hora de inicio: " + str;
-            
             bdGimnasios = data.bdGimnasios || {};
             catEdoMun = data.catEdoMun || {};
             inicializarBuscador();
             inicializarBuscadorDireccion();
         },
         (err) => {
-            if(banner) banner.innerHTML = "❌ Fallo de red. <button class='btn btn-sm btn-danger' onclick='location.reload()'>Reintentar</button>";
+            if(banner) banner.innerHTML = "❌ Error de red.";
         }
     );
 
@@ -138,14 +111,11 @@ function capturarGeolocalizacion() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
         (pos) => { geo_lat = pos.coords.latitude; geo_lon = pos.coords.longitude; geo_acc = pos.coords.accuracy; },
-        (err) => console.warn("Error GPS: " + err.message),
+        (err) => console.warn("GPS:", err.message),
         { enableHighAccuracy: true, timeout: 15000 }
     );
 }
 
-// ==========================================
-// LÓGICA ANTI-CONTRADICCIÓN DE CASILLAS
-// ==========================================
 function configurarBloqueoCasillas() {
     const eqChecks = document.querySelectorAll('.check-equipamiento');
     const eqNinguno = Array.from(eqChecks).find(c => c.value === 'Ninguno de los anteriores');
@@ -177,9 +147,6 @@ function configurarBloqueoCasillas() {
     }
 }
 
-// ==========================================
-// COMPRESIÓN MÁXIMA PARA OFFLINE Y SUBIDA
-// ==========================================
 function procesarArchivoAsync(file, maxWidth = 800, quality = 0.4) {
     return new Promise((resolve, reject) => {
         if (file.type.startsWith('image/') && !file.type.includes('heic')) {
@@ -223,11 +190,10 @@ async function dispararSubidaAsincrona(event) {
     }
 
     statusBadge.className = 'badge bg-warning ms-2 text-dark mt-1 d-block text-start text-wrap';
-    statusBadge.innerHTML = '⏳ Comprimiendo y Subiendo...';
+    statusBadge.innerHTML = '⏳ Comprimiendo...';
     
     archivosEnProceso++;
     btnSubmit.disabled = true;
-    if(btnSubmit.innerText.indexOf("ENVIAR") === -1) btnSubmit.innerText = "ESPERANDO CARGA DE ARCHIVOS...";
 
     try {
         const base64Data = await procesarArchivoAsync(file);
@@ -247,9 +213,7 @@ async function dispararSubidaAsincrona(event) {
             return;
         }
 
-        const payload = { action: "upload", base64: base64Data, mimeType: mimeType, filename: nombreArchivo, sufijo: input.id };
-        
-        server.postData(payload, 
+        server.postData({ action: "upload", base64: base64Data, mimeType: mimeType, filename: nombreArchivo, sufijo: input.id }, 
             (res) => {
                 if (res.success) {
                     urlsArchivosSubidos[input.id] = res.url;
@@ -258,14 +222,14 @@ async function dispararSubidaAsincrona(event) {
                 } else {
                     urlsArchivosSubidos[input.id] = base64Data; 
                     statusBadge.className = 'badge bg-info ms-2 mt-1 d-block text-start text-wrap text-dark';
-                    statusBadge.innerHTML = `⚠️ Falló subida de Google. Se guardará offline.`;
+                    statusBadge.innerHTML = `⚠️ Error servidor. Se guardará offline.`;
                 }
                 liberarBotonSubmit();
             },
             (err) => {
                 urlsArchivosSubidos[input.id] = base64Data; 
                 statusBadge.className = 'badge bg-info ms-2 mt-1 d-block text-start text-wrap text-dark';
-                statusBadge.innerHTML = `⚠️ Falló subida. Se guardará offline.`;
+                statusBadge.innerHTML = `⚠️ Error red. Se guardará offline.`;
                 liberarBotonSubmit();
             }
         );
@@ -286,9 +250,6 @@ function liberarBotonSubmit() {
     }
 }
 
-// ==========================================
-// TABLA DE HORARIOS
-// ==========================================
 function obtenerOpcionesHoras() {
     let opciones = '<option value="" selected disabled>Seleccione...</option>';
     const horas = ["06:00-07:00", "07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00", "17:00-18:00", "18:00-19:00", "19:00-20:00", "20:00-21:00", "NINGUNO"];
@@ -328,9 +289,6 @@ function bloquearFila(dia, cb) {
     document.getElementById(`btn-add-${dia}`).disabled = cb.checked;
 }
 
-// ==========================================
-// LOGICA DE CAMPOS Y DESPLEGABLES
-// ==========================================
 function inicializarBuscador() {
     const selectEstado = document.getElementById('selectEstado');
     if(!selectEstado) return;
@@ -465,9 +423,6 @@ function gestionarCargaCodigo() {
     document.getElementById('fotoCodigoReverso').required = !no;
 }
 
-// ==========================================
-// KILL SWITCHES (Lógica de "Barredora")
-// ==========================================
 function evaluarKillSwitches() {
     if (archivosEnProceso > 0) return; 
 
@@ -494,9 +449,7 @@ function evaluarKillSwitches() {
         btnSubmit.innerText = "FINALIZAR REPORTE";
     }
 
-    if (killId) {
-        aplicarBarredoraDOM(killId, killReasonGlobal, exceptions);
-    }
+    if (killId) { aplicarBarredoraDOM(killId, killReasonGlobal, exceptions); }
 }
 
 function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
@@ -543,9 +496,6 @@ function rehabilitarTodo() {
     gestionarCargaCodigo();
 }
 
-// ==========================================
-// INDEXED DB (MOTOR DE ALMACENAMIENTO MASIVO)
-// ==========================================
 const DB_NAME = "BoxeandoDB_v2";
 const STORE_NAME = "reportes_pendientes";
 
@@ -562,9 +512,7 @@ function initDB() {
             };
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
-        } catch (err) {
-            reject(err);
-        }
+        } catch (err) { reject(err); }
     });
 }
 
@@ -574,9 +522,7 @@ async function guardarEnLocal(datos) {
         const db = await initDB();
         const tx = db.transaction(STORE_NAME, "readwrite");
         tx.objectStore(STORE_NAME).put(datos);
-        tx.oncomplete = () => {
-            actualizarContadorCola();
-        };
+        tx.oncomplete = () => { actualizarContadorCola(); };
     } catch (error) {
         console.error("Fallo de IndexedDB:", error);
         let cola = JSON.parse(localStorage.getItem('fallback_boxeo') || "[]");
@@ -598,10 +544,7 @@ async function revisarPendientes() {
         
         request.onsuccess = () => {
             const pendientes = request.result;
-            if (pendientes.length === 0) {
-                actualizarContadorCola();
-                return;
-            }
+            if (pendientes.length === 0) { actualizarContadorCola(); return; }
 
             isSyncing = true;
             const itemToSync = pendientes[0];
@@ -612,23 +555,13 @@ async function revisarPendientes() {
                         const db2 = await initDB();
                         const tx2 = db2.transaction(STORE_NAME, "readwrite");
                         tx2.objectStore(STORE_NAME).delete(itemToSync.id_local);
-                        tx2.oncomplete = () => {
-                            isSyncing = false;
-                            revisarPendientes(); 
-                        };
-                    } else {
-                        isSyncing = false; 
-                    }
+                        tx2.oncomplete = () => { isSyncing = false; revisarPendientes(); };
+                    } else { isSyncing = false; }
                 },
-                (err) => {
-                    isSyncing = false; 
-                }
+                (err) => { isSyncing = false; }
             );
         };
-    } catch (e) {
-        console.error("Error leyendo IndexedDB", e);
-        isSyncing = false;
-    }
+    } catch (e) { console.error("Error leyendo IndexedDB", e); isSyncing = false; }
 }
 
 async function actualizarContadorCola() {
@@ -645,18 +578,11 @@ async function actualizarContadorCola() {
             if (pendientesCountGlobal > 0) {
                 badge.style.display = 'block';
                 document.getElementById('queueCount').innerText = pendientesCountGlobal;
-            } else {
-                badge.style.display = 'none';
-            }
+            } else { badge.style.display = 'none'; }
         };
-    } catch (e) {
-        console.warn("No se pudo actualizar badge", e);
-    }
+    } catch (e) { console.warn("No se pudo actualizar badge", e); }
 }
 
-// ==========================================
-// PREPARACIÓN DE DATOS Y ENVÍO FINAL
-// ==========================================
 function finalizarYEnviar(formulario) {
     if (archivosEnProceso > 0) return alert("⏳ Aún hay fotos subiéndose. Espera a que terminen.");
 
@@ -667,7 +593,7 @@ function finalizarYEnviar(formulario) {
 
     if (!navigator.onLine) {
         guardarEnLocal(datosObj);
-        alert("💾 SIN INTERNET: El reporte y sus fotos se guardaron en la memoria profunda del teléfono. No borres los datos del navegador y sube cuando tengas señal.");
+        alert("💾 SIN INTERNET: El reporte se guardó en el teléfono.");
         reiniciarFormularioCompleto();
         return;
     }
@@ -709,9 +635,8 @@ function recopilarDatos(formulario) {
 
         const fila = document.getElementById('fila-Lunes_Viernes');
         if (fila) {
-            if(fila.querySelector('.form-check-input').checked) {
-                d.selectCumpleHorario = "LUNES A VIERNES: NO PUEDE";
-            } else {
+            if(fila.querySelector('.form-check-input').checked) { d.selectCumpleHorario = "LUNES A VIERNES: NO PUEDE"; } 
+            else {
                 const horas = Array.from(fila.querySelectorAll('.select-hora')).map(s => s.value).filter(v => v && v !== "NINGUNO");
                 d.selectCumpleHorario = horas.length > 0 ? `LUNES A VIERNES: ${horas.join(", ")}` : "LUNES A VIERNES: S/D";
             }
@@ -719,7 +644,6 @@ function recopilarDatos(formulario) {
     }
 
     for (const key in urlsArchivosSubidos) d["url_" + key] = urlsArchivosSubidos[key];
-    
     return d;
 }
 
@@ -729,12 +653,10 @@ function reiniciarFormularioCompleto() {
     form.removeAttribute('data-cdd-bypass');
     urlsArchivosSubidos = {};
     document.querySelectorAll('span[id^="status_"]').forEach(el => el.remove());
-    
     ['divSubTipoEspacio', 'divObsSubTipo', 'campoDireccionOtros', 'divCuotaDetalles', 'divOtroCuota', 'divOtroDifusion'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.style.display = 'none';
     });
-
     rehabilitarTodo();
     new bootstrap.Tab(document.getElementById('btnTab1')).show();
     evaluarKillSwitches(); 
@@ -780,14 +702,11 @@ form.addEventListener("submit", function(e) {
 
 window.onbeforeunload = function(e) {
     if (!navigator.onLine) {
-        const warningOffline = "ESTÁS SIN SEÑAL. Si recargas o cierras la página, LA APLICACIÓN DESAPARECERÁ y no podrás continuar hasta buscar internet. ¿Seguro que quieres salir?";
-        e.returnValue = warningOffline;
-        return warningOffline;
+        const warningOffline = "ESTÁS SIN SEÑAL. Si recargas o cierras la página, perderás el acceso hasta buscar internet.";
+        e.returnValue = warningOffline; return warningOffline;
     }
-    
     if (pendientesCountGlobal > 0) {
-        const warningQueue = "Tienes reportes pendientes de envío. Si cierras, se enviarán automáticamente cuando vuelvas a abrir la página con internet. ¿Salir de todas formas?";
-        e.returnValue = warningQueue;
-        return warningQueue;
+        const warningQueue = "Tienes reportes pendientes. Si cierras, se enviarán automáticamente cuando vuelvas a abrir la página con internet.";
+        e.returnValue = warningQueue; return warningQueue;
     }
 };
