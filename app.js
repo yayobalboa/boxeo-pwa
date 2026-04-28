@@ -1,6 +1,3 @@
-// ==========================================
-// CONFIGURACIÓN DE LA PWA Y LA API
-// ==========================================
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyI0-gSyeSI4UpBWQINfatmK8iULJBPwRJE-BVIpXIp57SXbeM-vrO2VP739yGdWpKM/exec";
 
 if ('serviceWorker' in navigator) {
@@ -14,16 +11,10 @@ if ('serviceWorker' in navigator) {
 const server = {
     getDatos: async function(successCallback, failureCallback) {
         try {
-            const res = await fetch(GAS_URL + "?action=getDatos", {
-                method: "GET",
-                redirect: "follow"
-            });
+            const res = await fetch(GAS_URL + "?action=getDatos", { method: "GET", redirect: "follow" });
             const text = await res.text(); 
             const data = JSON.parse(text); 
-            // Magia Offline: Guardamos un respaldo en el teléfono
-            if(!data.ERROR) {
-                localStorage.setItem('backup_catalogos_boxeo', JSON.stringify(data));
-            }
+            if(!data.ERROR) { localStorage.setItem('backup_catalogos_boxeo', JSON.stringify(data)); }
             if(successCallback) successCallback(data);
         } catch (e) {
             console.error("Error en getDatos:", e);
@@ -33,8 +24,7 @@ const server = {
     postData: async function(payload, successCallback, failureCallback) {
         try {
             const res = await fetch(GAS_URL, {
-                method: "POST",
-                redirect: "follow", 
+                method: "POST", redirect: "follow", 
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             });
@@ -48,9 +38,6 @@ const server = {
     }
 };
 
-// ==========================================
-// VARIABLES GLOBALES
-// ==========================================
 const form = document.getElementById('formReporte');
 const btnSubmit = document.getElementById('btnFinalizar');
 
@@ -64,18 +51,17 @@ let geo_acc = "-";
 let killReasonGlobal = "";
 let pendientesCountGlobal = 0; 
 
-// ==========================================
-// NORMALIZACIÓN DE TEXTO
-// ==========================================
 document.addEventListener('input', function (e) {
     const el = e.target;
-    if ((el.tagName === 'INPUT' && el.type === 'text' || el.tagName === 'TEXTAREA') && !el.classList.contains('clean-direccion')) {
-        let start = el.selectionStart;
-        let end = el.selectionEnd;
-        let texto = el.value.toUpperCase();
-        const mapaAcentos = { 'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'À': 'A', 'È': 'E', 'Ì': 'I', 'Ò': 'O', 'Ù': 'U', 'Ä': 'A', 'Ë': 'E', 'Ï': 'I', 'Ö': 'O', 'Ü': 'U' };
-        el.value = texto.split('').map(letra => mapaAcentos[letra] || letra).join('');
-        el.setSelectionRange(start, end);
+    if ((el.tagName === 'INPUT' && el.type === 'text' && el.type !== 'email') || el.tagName === 'TEXTAREA') {
+        if(!el.classList.contains('clean-direccion')) {
+            let start = el.selectionStart;
+            let end = el.selectionEnd;
+            let texto = el.value.toUpperCase();
+            const mapaAcentos = { 'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'À': 'A', 'È': 'E', 'Ì': 'I', 'Ò': 'O', 'Ù': 'U', 'Ä': 'A', 'Ë': 'E', 'Ï': 'I', 'Ö': 'O', 'Ü': 'U' };
+            el.value = texto.split('').map(letra => mapaAcentos[letra] || letra).join('');
+            el.setSelectionRange(start, end);
+        }
     }
 });
 
@@ -85,9 +71,6 @@ document.addEventListener('blur', function(e) {
     }
 }, true);
 
-// ==========================================
-// EVENTOS DE CARGA (ONLOAD)
-// ==========================================
 window.addEventListener('load', () => {
     capturarGeolocalizacion();
     revisarPendientes();
@@ -96,7 +79,7 @@ window.addEventListener('load', () => {
     window.addEventListener('online', () => {
         document.getElementById('offline-alert').style.display = 'none';
         revisarPendientes();
-        cargarCatalogos(true); // Intenta actualizar en segundo plano
+        cargarCatalogos(true);
     });
     window.addEventListener('offline', () => {
         document.getElementById('offline-alert').style.display = 'block';
@@ -114,62 +97,46 @@ window.addEventListener('load', () => {
     });
 });
 
-// Función Inteligente para Cargar Catálogos
 function cargarCatalogos(silencioso = false) {
     const banner = document.getElementById('bannerFecha');
-    
-    // Si no hay internet al iniciar...
     if (!navigator.onLine) {
         const backup = localStorage.getItem('backup_catalogos_boxeo');
         if (backup) {
             if(banner && !silencioso) banner.innerText = "Modo Offline: Usando catálogos guardados en tu teléfono.";
             const data = JSON.parse(backup);
-            bdGimnasios = data.bdGimnasios || {};
-            catEdoMun = data.catEdoMun || {};
-            inicializarBuscador();
-            inicializarBuscadorDireccion();
+            bdGimnasios = data.bdGimnasios || {}; catEdoMun = data.catEdoMun || {};
+            inicializarBuscador(); inicializarBuscadorDireccion();
         } else {
             if(banner && !silencioso) banner.innerHTML = "❌ Modo Offline sin datos previos. <br>Necesitas conectarte al menos una vez para descargar la lista de gimnasios.";
         }
         return;
     }
 
-    // Si hay internet, vamos por los datos frescos a Google
     if(banner && !silencioso) banner.innerText = "Sincronizando con base de datos...";
 
     server.getDatos(
         (data) => {
             if(data.ERROR) { 
-                console.error(data.ERROR);
                 if(banner && !silencioso) banner.innerHTML = "❌ Error al sincronizar. Intentando usar respaldo...";
-                // Intento Fallback si falla Google
                 const backup = localStorage.getItem('backup_catalogos_boxeo');
                 if(backup) {
                     const dataBak = JSON.parse(backup);
-                    bdGimnasios = dataBak.bdGimnasios || {};
-                    catEdoMun = dataBak.catEdoMun || {};
-                    inicializarBuscador();
-                    inicializarBuscadorDireccion();
+                    bdGimnasios = dataBak.bdGimnasios || {}; catEdoMun = dataBak.catEdoMun || {};
+                    inicializarBuscador(); inicializarBuscadorDireccion();
                 }
                 return; 
             }
             if(banner && !silencioso) banner.innerText = "Fecha y hora de inicio: " + new Date().toLocaleString('es-MX').replace(/,/g, "");
-            
-            bdGimnasios = data.bdGimnasios || {};
-            catEdoMun = data.catEdoMun || {};
-            inicializarBuscador();
-            inicializarBuscadorDireccion();
+            bdGimnasios = data.bdGimnasios || {}; catEdoMun = data.catEdoMun || {};
+            inicializarBuscador(); inicializarBuscadorDireccion();
         },
         (err) => {
             if(banner && !silencioso) banner.innerHTML = "❌ Fallo de red. <button class='btn btn-sm btn-danger' onclick='location.reload()'>Reintentar</button>";
-            // Intento Fallback si falla red
             const backup = localStorage.getItem('backup_catalogos_boxeo');
             if(backup) {
                 const dataBak = JSON.parse(backup);
-                bdGimnasios = dataBak.bdGimnasios || {};
-                catEdoMun = dataBak.catEdoMun || {};
-                inicializarBuscador();
-                inicializarBuscadorDireccion();
+                bdGimnasios = dataBak.bdGimnasios || {}; catEdoMun = dataBak.catEdoMun || {};
+                inicializarBuscador(); inicializarBuscadorDireccion();
                 if(banner && !silencioso) banner.innerText = "Fallo de red. Usando catálogos guardados en tu teléfono.";
             }
         }
@@ -185,9 +152,6 @@ function capturarGeolocalizacion() {
     );
 }
 
-// ==========================================
-// LÓGICA ANTI-CONTRADICCIÓN DE CASILLAS
-// ==========================================
 function configurarBloqueoCasillas() {
     const eqChecks = document.querySelectorAll('.check-equipamiento');
     const eqNinguno = Array.from(eqChecks).find(c => c.value === 'Ninguno de los anteriores');
@@ -219,9 +183,6 @@ function configurarBloqueoCasillas() {
     }
 }
 
-// ==========================================
-// COMPRESIÓN MÁXIMA PARA OFFLINE Y SUBIDA
-// ==========================================
 function procesarArchivoAsync(file, maxWidth = 800, quality = 0.4) {
     return new Promise((resolve, reject) => {
         if (file.type.startsWith('image/') && !file.type.includes('heic')) {
@@ -328,9 +289,6 @@ function liberarBotonSubmit() {
     }
 }
 
-// ==========================================
-// TABLA DE HORARIOS
-// ==========================================
 function obtenerOpcionesHoras() {
     let opciones = '<option value="" selected disabled>Seleccione...</option>';
     const horas = ["06:00-07:00", "07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00", "17:00-18:00", "18:00-19:00", "19:00-20:00", "20:00-21:00", "NINGUNO"];
@@ -370,9 +328,6 @@ function bloquearFila(dia, cb) {
     document.getElementById(`btn-add-${dia}`).disabled = cb.checked;
 }
 
-// ==========================================
-// LOGICA DE CAMPOS Y DESPLEGABLES
-// ==========================================
 function inicializarBuscador() {
     const selectEstado = document.getElementById('selectEstado');
     if(!selectEstado) return;
@@ -507,8 +462,23 @@ function gestionarCargaCodigo() {
     document.getElementById('fotoCodigoReverso').required = !no;
 }
 
+function toggleCoincideGym() {
+    const val = document.getElementById('selectCoincideGym').value;
+    const divNuevoGym = document.getElementById('divNuevoGym');
+    const inputNuevoGym = document.getElementById('inputNuevoGym');
+    if(val === 'NO') {
+        divNuevoGym.style.display = 'block';
+        inputNuevoGym.required = true;
+        inputNuevoGym.value = '';
+    } else {
+        divNuevoGym.style.display = 'none';
+        inputNuevoGym.required = false;
+        inputNuevoGym.value = 'El nombre coincidía con el registro';
+    }
+}
+
 // ==========================================
-// KILL SWITCHES (Lógica de "Barredora")
+// KILL SWITCHES 
 // ==========================================
 function evaluarKillSwitches() {
     if (archivosEnProceso > 0) return; 
@@ -561,6 +531,7 @@ function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
         } else if (el.type === "checkbox" || el.type === "radio") {
             el.checked = false;
         } else {
+            if(el.type === "email") el.type = "text"; // Evitar error HTML5
             el.value = reason;
         }
     }
@@ -573,6 +544,7 @@ function rehabilitarTodo() {
         if (el.value && el.value.startsWith("Cuestionario cerrado")) {
             if (el.tagName === "SELECT") el.value = "";
             else el.value = "";
+            if(el.id.includes("email")) el.type = "email"; // Restaurar tipo
         }
         if (el.type === "file" && urlsArchivosSubidos[el.id] && urlsArchivosSubidos[el.id].startsWith("Cuestionario cerrado")) {
             delete urlsArchivosSubidos[el.id];
@@ -583,10 +555,12 @@ function rehabilitarTodo() {
     evaluarDomicilio();
     toggleCuotaDetalles();
     gestionarCargaCodigo();
+    
+    if (document.getElementById('selectCoincideGym')) toggleCoincideGym();
 }
 
 // ==========================================
-// INDEXED DB (MOTOR DE ALMACENAMIENTO MASIVO)
+// INDEXED DB PWA
 // ==========================================
 const DB_NAME = "BoxeandoDB_v2";
 const STORE_NAME = "reportes_pendientes";
@@ -604,9 +578,7 @@ function initDB() {
             };
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
-        } catch (err) {
-            reject(err);
-        }
+        } catch (err) { reject(err); }
     });
 }
 
@@ -616,9 +588,7 @@ async function guardarEnLocal(datos) {
         const db = await initDB();
         const tx = db.transaction(STORE_NAME, "readwrite");
         tx.objectStore(STORE_NAME).put(datos);
-        tx.oncomplete = () => {
-            actualizarContadorCola();
-        };
+        tx.oncomplete = () => { actualizarContadorCola(); };
     } catch (error) {
         console.error("Fallo de IndexedDB:", error);
         let cola = JSON.parse(localStorage.getItem('fallback_boxeo') || "[]");
@@ -640,10 +610,7 @@ async function revisarPendientes() {
         
         request.onsuccess = () => {
             const pendientes = request.result;
-            if (pendientes.length === 0) {
-                actualizarContadorCola();
-                return;
-            }
+            if (pendientes.length === 0) { actualizarContadorCola(); return; }
 
             isSyncing = true;
             const itemToSync = pendientes[0];
@@ -654,23 +621,13 @@ async function revisarPendientes() {
                         const db2 = await initDB();
                         const tx2 = db2.transaction(STORE_NAME, "readwrite");
                         tx2.objectStore(STORE_NAME).delete(itemToSync.id_local);
-                        tx2.oncomplete = () => {
-                            isSyncing = false;
-                            revisarPendientes(); 
-                        };
-                    } else {
-                        isSyncing = false; 
-                    }
+                        tx2.oncomplete = () => { isSyncing = false; revisarPendientes(); };
+                    } else { isSyncing = false; }
                 },
-                (err) => {
-                    isSyncing = false; 
-                }
+                (err) => { isSyncing = false; }
             );
         };
-    } catch (e) {
-        console.error("Error leyendo IndexedDB", e);
-        isSyncing = false;
-    }
+    } catch (e) { console.error("Error leyendo IndexedDB", e); isSyncing = false; }
 }
 
 async function actualizarContadorCola() {
@@ -687,13 +644,9 @@ async function actualizarContadorCola() {
             if (pendientesCountGlobal > 0) {
                 badge.style.display = 'block';
                 document.getElementById('queueCount').innerText = pendientesCountGlobal;
-            } else {
-                badge.style.display = 'none';
-            }
+            } else { badge.style.display = 'none'; }
         };
-    } catch (e) {
-        console.warn("No se pudo actualizar badge", e);
-    }
+    } catch (e) { console.warn("No se pudo actualizar badge", e); }
 }
 
 // ==========================================
@@ -772,7 +725,7 @@ function reiniciarFormularioCompleto() {
     urlsArchivosSubidos = {};
     document.querySelectorAll('span[id^="status_"]').forEach(el => el.remove());
     
-    ['divSubTipoEspacio', 'divObsSubTipo', 'campoDireccionOtros', 'divCuotaDetalles', 'divOtroCuota', 'divOtroDifusion'].forEach(id => {
+    ['divSubTipoEspacio', 'divObsSubTipo', 'campoDireccionOtros', 'divCuotaDetalles', 'divOtroCuota', 'divOtroDifusion', 'divNuevoGym'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.style.display = 'none';
     });
@@ -789,9 +742,23 @@ form.addEventListener("submit", function(e) {
     e.preventDefault();
     
     const obsSub = document.getElementById('obs_subtipo');
-    if (obsSub.required && obsSub.value.length < 20) {
+    if (obsSub.required && obsSub.value.length < 10) {
         new bootstrap.Tab(document.getElementById('btnTab1')).show();
-        return alert("⚠️ Las observaciones del sub-tipo de espacio deben tener al menos 20 caracteres.");
+        return alert("⚠️ Las observaciones del sub-tipo de espacio deben tener al menos 10 caracteres.");
+    }
+
+    // Validar correos
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailTutor = document.getElementById('email_tutor');
+    const emailAdic = document.getElementById('email_adicional');
+    
+    if (emailTutor.required && emailTutor.value && !emailTutor.value.startsWith("Cuestionario cerrado") && !emailRegex.test(emailTutor.value)) {
+        new bootstrap.Tab(document.getElementById('btnTab2')).show();
+        return alert("⚠️ El Correo electrónico del tutor no tiene un formato válido (ej. correo@dominio.com).");
+    }
+    if (emailAdic.required && emailAdic.value && !emailAdic.value.startsWith("Cuestionario cerrado") && !emailRegex.test(emailAdic.value)) {
+        new bootstrap.Tab(document.getElementById('btnTab2')).show();
+        return alert("⚠️ El Correo electrónico adicional no tiene un formato válido.");
     }
 
     const obsGral = document.getElementById('observaciones_generales');
@@ -823,58 +790,10 @@ form.addEventListener("submit", function(e) {
 window.onbeforeunload = function(e) {
     if (!navigator.onLine) {
         const warningOffline = "ESTÁS SIN SEÑAL. Si recargas o cierras la página, LA APLICACIÓN DESAPARECERÁ y no podrás continuar hasta buscar internet. ¿Seguro que quieres salir?";
-        e.returnValue = warningOffline;
-        return warningOffline;
+        e.returnValue = warningOffline; return warningOffline;
     }
-    
     if (pendientesCountGlobal > 0) {
         const warningQueue = "Tienes reportes pendientes de envío. Si cierras, se enviarán automáticamente cuando vuelvas a abrir la página con internet. ¿Salir de todas formas?";
-        e.returnValue = warningQueue;
-        return warningQueue;
+        e.returnValue = warningQueue; return warningQueue;
     }
 };
-
-// Y por favor actualiza en github el sw.js
-const CACHE_NAME = 'boxeo-pwa-v6'; // AHORA CON VERSION 6 PARA FORZAR LIMPIEZA
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/app.js',
-  '/manifest.json',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'
-];
-
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', event => {
-  // Limpia caches viejos
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    })
-  );
-  event.waitUntil(self.clients.claim());
-});
-
-self.addEventListener('fetch', event => {
-  if (event.request.url.includes("script.google.com")) {
-      return; 
-  }
-  
-  if (event.request.method !== 'GET') return;
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
-});
