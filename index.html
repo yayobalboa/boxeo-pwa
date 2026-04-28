@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boxeando por la Paz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Etiquetas PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e5b4f">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3593/3593455.png">
+
+    <style>
+        :root { --vino: #9b2247; --verde: #1e5b4f; --dorado: #a57f2c; --bg-color: #f4f7f6; --success-color: #198754; --error-color: #dc3545; }
+        
+        body { 
+            background-color: var(--bg-color); 
+            font-family: 'Noto Sans', sans-serif; 
+            padding-bottom: 20px; 
+            overscroll-behavior-y: none; /* Bloqueo de recarga táctil */
+        }
+        
+        .banner-legal { position: sticky; top: 0; z-index: 1050; background-color: #f8f9fa; border-bottom: 4px solid var(--dorado); color: #333; font-size: 0.8rem; font-weight: 700; text-align: center; padding: 12px 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-transform: uppercase; }
+        .container-fluid { padding: 20px 10px; }
+        .card { border-radius: 12px; border: 1px solid #dee2e6; box-shadow: 0 8px 24px rgba(0,0,0,0.12); overflow: hidden; }
+        .card-header { background: var(--verde); color: white; padding: 20px; text-align: center; border: none; }
+        .form-control:valid, .form-select:valid { border-color: var(--success-color) !important; border-width: 2px; }
+        .was-validated .form-control:invalid, .was-validated .form-select:invalid { border-color: var(--error-color) !important; border-width: 2px; }
+        .nav-link { color: #495057; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; border: none !important; padding: 15px; }
+        .nav-link.active { color: var(--vino) !important; border-bottom: 3px solid var(--vino) !important; background: #f8f9fa; }
+        .section-title { font-size: 0.85rem; text-transform: uppercase; color: var(--verde); font-weight: 800; display: block; margin-bottom: 15px; border-left: 5px solid var(--dorado); padding: 8px 10px; margin-top: 25px; background: #e9ecef; }
+        .form-label.fw-bold, .text-primary, .h5, .h6 { color: var(--verde) !important; }
+        .btn-primary { background-color: var(--vino); border-color: var(--vino); }
+        .btn-primary:hover { background-color: #7c1b38; border-color: #7c1b38; }
+        .uppercase { text-transform: uppercase; }
+        .hidden-field { display: none; }
+        .section-disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
+        .box-validation { border: 2px solid #dee2e6; padding: 15px; border-radius: 8px; transition: 0.3s; background: white; margin-bottom: 15px; }
+        .timestamp-banner { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 8px; font-weight: bold; text-align: center; margin-bottom: 15px; }
+        .foto-destacada { border: 2px dashed var(--verde); background-color: #eaf1f0; }
+        .char-counter { font-size: 0.75rem; font-weight: bold; float: right; color: #6c757d; }
+        
+        #offline-alert { display:none; position:fixed; top:45px; left:0; width:100%; z-index:2000; border-radius:0; margin:0; }
+        .queue-badge { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 1rem; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+
+<div class="banner-legal">"Este programa es público ajeno a cualquier partido político. Queda prohibido el uso para fines distintos a los establecidos en el Programa"</div>
+
+<div id="offline-alert" class="alert alert-danger text-center fw-bold">
+    🚫 SIN CONEXIÓN A INTERNET<br>
+    <span class="text-dark small">⚠️ NO RECARGUES NI CIERRES ESTA PÁGINA O PERDERÁS EL ACCESO HASTA RECUPERAR SEÑAL.</span>
+</div>
+
+<div class="badge bg-warning text-dark queue-badge" id="badgeQueue">⏳ Pendientes por enviar: <span id="queueCount" class="fw-bold fs-5">0</span></div>
+
+<div class="container-fluid">
+    <div class="card mx-auto" style="max-width: 1100px;">
+        <div class="card-header"><h4 class="mb-0 fw-bold">Visita inicial etapa 2 "Boxeando por la paz"</h4></div>
+        <div class="card-body p-4 bg-white">
+            <div class="timestamp-banner" id="bannerFecha">Registrando inicio de visita...</div>
+
+            <ul class="nav nav-tabs justify-content-center mb-4" id="mainTabs">
+                <li class="nav-item"><button class="nav-link active" id="btnTab1" data-bs-toggle="tab" data-bs-target="#pane1">📋 1. GENERALES</button></li>
+                <li class="nav-item"><button class="nav-link" id="btnTab2" data-bs-toggle="tab" data-bs-target="#pane2">👤 2. TUTOR Y OPERACIÓN</button></li>
+                <li class="nav-item"><button class="nav-link" id="btnTab3" data-bs-toggle="tab" data-bs-target="#pane3">✅ 3. CIERRE</button></li>
+            </ul>
+
+            <form id="formReporte" novalidate>
+                <input type="hidden" id="timestamp" name="timestamp">
+                
+                <div class="tab-content">
+                    
+                    <!-- PASO 1 -->
+                    <div class="tab-pane fade show active" id="pane1">
+                        <span class="section-title">Información del Servidor Público y Gimnasio</span>
+                        <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label fw-bold">Nombre del servidor público *</label><input type="text" id="nombre_visitante" name="nombre_visitante" class="form-control uppercase clean-input" required placeholder="Nombre completo" onblur="validarNombres()"></div>
+                            <div class="col-md-6"><label class="form-label fw-bold">Cargo *</label><input type="text" id="cargo_visitante" name="cargo_visitante" class="form-control uppercase clean-input" required placeholder="Puesto"></div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Estado *</label>
+                                <select id="selectEstado" name="selectEstado" class="form-select" onchange="cargarMunicipios(); togglePilares();" required><option value="" disabled selected>Seleccione Estado...</option></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Municipio *</label>
+                                <select id="selectMunicipio" name="selectMunicipio" class="form-select" onchange="cargarGimnasios()" required disabled><option value="" disabled selected>Seleccione Municipio...</option></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Gimnasio *</label> 
+                                <select id="selectGimnasio" name="selectGimnasio" class="form-select" required disabled><option value="" disabled selected>Seleccione...</option></select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Tipo de espacio *</label>
+                                <select id="selectTipoEspacio" name="selectTipoEspacio" class="form-select" onchange="toggleSubTipoEspacio()" required>
+                                    <option value="" selected disabled>...</option>
+                                    <option value="Propiedad privada">Propiedad privada</option>
+                                    <option value="Espacio público">Espacio público</option>
+                                    <option value="Inmueble gubernamental">Inmueble gubernamental</option>
+                                </select>
+                            </div>
+                            
+                            <div id="divSubTipoEspacio" class="col-md-8 hidden-field">
+                                <label class="form-label fw-bold text-primary">Sub-tipo de espacio *</label>
+                                <select id="selectSubTipoEspacio" name="selectSubTipoEspacio" class="form-select">
+                                    <option value="" selected disabled>Seleccione...</option>
+                                </select>
+                            </div>
+
+                            <div id="divObsSubTipo" class="col-12 hidden-field">
+                                <label class="form-label fw-bold">Observaciones de estos subtipos (Mín. 20 caracteres) *</label>
+                                <span class="char-counter" id="counter_subtipo">0 / 20</span>
+                                <textarea id="obs_subtipo" name="obs_subtipo" class="form-control uppercase clean-input" rows="2" placeholder="Describa el lugar detalladamente..." oninput="actualizarContador(this, 20, 'counter_subtipo')"></textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Nombre de Tutor</label>
+                                <input type="text" id="inputTutorRegistro" name="inputTutorRegistro" class="form-control bg-light" readonly placeholder="Se asigna automáticamente">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Correo electrónico del tutor *</label>
+                                <input type="email" id="email_tutor" name="email_tutor" class="form-control" required placeholder="ejemplo@correo.com">
+                            </div>
+                            
+                            <div class="col-12">
+                                <div id="boxDomicilio" class="box-validation">
+                                    <p class="fw-bold text-primary mb-2">VERIFICACIÓN DE DOMICILIO</p>
+                                    <label class="form-label">¿Corresponde el domicilio registrado? *</label>
+                                    <select id="selectCorresponde" name="selectCorresponde" class="form-select" onchange="evaluarDomicilio()" required>
+                                        <option value="" selected disabled>...</option>
+                                        <option value="SÍ">SÍ</option>
+                                        <option value="NO">NO</option>
+                                    </select>
+                                    
+                                    <div id="campoDireccionOtros" class="hidden-field mt-3">
+                                        <div class="p-3 border rounded bg-light border-danger">
+                                            <label class="form-label fw-bold text-danger mb-3">Capture los datos de la dirección correcta: *</label>
+                                            <div class="row g-2">
+                                                <div class="col-md-8"><label class="form-label small fw-bold">Calle *</label><input type="text" id="dir_calle" class="form-control form-control-sm uppercase clean-direccion" placeholder="Nombre de la calle"></div>
+                                                <div class="col-md-2"><label class="form-label small fw-bold">Num. Ext *</label><input type="text" id="dir_ext" class="form-control form-control-sm uppercase clean-direccion" placeholder="Ej. 123"></div>
+                                                <div class="col-md-2"><label class="form-label small fw-bold">Num. Int</label><input type="text" id="dir_int" class="form-control form-control-sm uppercase clean-direccion" placeholder="Opcional"></div>
+                                                <div class="col-md-4"><label class="form-label small fw-bold">Colonia *</label><input type="text" id="dir_colonia" class="form-control form-control-sm uppercase clean-direccion" placeholder="Colonia"></div>
+                                                <div class="col-md-2"><label class="form-label small fw-bold">C.P. *</label><input type="number" id="dir_cp" class="form-control form-control-sm clean-direccion" placeholder="5 dígitos"></div>
+                                                <div class="col-md-3"><label class="form-label small fw-bold">Estado *</label><select id="dir_estado" class="form-select form-select-sm clean-direccion" onchange="cargarMunicipiosDireccion()"><option value="" disabled selected>Estado...</option></select></div>
+                                                <div class="col-md-3"><label class="form-label small fw-bold">Municipio/Alcaldía *</label><select id="dir_municipio" class="form-select form-select-sm clean-direccion" onchange="concatenarDireccion()"><option value="" disabled selected>Municipio...</option></select></div>
+                                            </div>
+                                            <input type="hidden" id="inputDireccionOtros" name="inputDireccionOtros">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6"><label class="form-label fw-bold text-primary">Fotografía fachada 1 *</label><input type="file" id="fotoFachada1" name="fotoFachada1" class="form-control" accept="image/*" required></div>
+                            <div class="col-md-6"><label class="form-label fw-bold text-primary">Fotografía fachada 2 *</label><input type="file" id="fotoFachada2" name="fotoFachada2" class="form-control" accept="image/*" required></div>
+                            
+                            <div class="col-12 text-center">
+                                <div class="box-validation" id="boxAbierta">
+                                    <label class="form-label fw-bold text-primary h5">¿La sucursal se encuentra abierta al momento de la visita? *</label>
+                                    <select id="selectAbierta" name="selectAbierta" class="form-select form-select-lg text-center fw-bold" onchange="evaluarKillSwitches()" required><option value="" selected disabled>...</option><option value="SÍ">SÍ</option><option value="NO">NO</option></select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PASO 2 -->
+                    <div class="tab-pane fade" id="pane2">
+                        <span class="section-title">Datos del Tutor y Operatividad</span>
+                        <div class="row g-3">
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">¿El Tutor se encontraba presente? *</label>
+                                <select id="selectTutorPresente" name="selectTutorPresente" class="form-select" onchange="evaluarKillSwitches()" required><option value="" selected disabled>...</option><option value="SÍ">SÍ</option><option value="NO">NO</option></select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Nombre de quien atiende *</label>
+                                <input type="text" id="nombrePersonaAtiende" name="nombrePersonaAtiende" class="form-control uppercase clean-input" required onblur="validarNombres()">
+                            </div>
+                            
+                            <div class="col-md-6"><label class="form-label fw-bold text-primary">Anverso Identificación (INE) *</label><input type="file" id="fotoIneAnverso" name="fotoIneAnverso" class="form-control" accept="image/*" required></div>
+                            <div class="col-md-6"><label class="form-label fw-bold text-primary">Reverso Identificación (INE) *</label><input type="file" id="fotoIneReverso" name="fotoIneReverso" class="form-control" accept="image/*" required></div>
+                            
+                            <div class="col-12">
+                                <div class="p-3 mb-2 rounded foto-destacada">
+                                    <label class="form-label fw-bold text-primary">📷 Evidencia fotográfica con el Tutor(a) *</label>
+                                    <input type="file" class="form-control border-success" id="fotoTutorFile" name="fotoTutorFile" accept="image/*" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Observaciones Generales (Mínimo 50 caracteres) *</label>
+                                <span class="char-counter" id="counter_gral">0 / 50</span>
+                                <textarea id="observaciones_generales" name="observaciones_generales" class="form-control uppercase clean-input" rows="3" required oninput="actualizarContador(this, 50, 'counter_gral')"></textarea>
+                            </div>
+
+                            <div class="col-12 text-center">
+                                <div class="box-validation" id="boxQuiere">
+                                    <label class="form-label text-primary fw-bold h6">¿El Tutor quiere participar en la Estrategia? *</label>
+                                    <select id="selectQuiere" name="selectQuiere" class="form-select form-select-lg fw-bold" onchange="evaluarKillSwitches()" required><option value="" selected disabled>...</option><option value="SÍ">SÍ</option><option value="NO">NO</option></select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mt-2">
+                                <div id="boxCuota" class="box-validation shadow-sm">
+                                    <label class="form-label text-primary fw-bold h6">¿Se le ha solicitado alguna cuota para participar en la Estrategia? *</label>
+                                    <select id="selectCuota" name="selectCuota" class="form-select form-select-lg fw-bold" onchange="toggleCuotaDetalles()" required>
+                                        <option value="" selected disabled>...</option>
+                                        <option value="SÍ">SÍ</option>
+                                        <option value="NO">NO</option>
+                                    </select>
+                                    
+                                    <div id="divCuotaDetalles" class="hidden-field mt-3">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">¿Quién solicita? *</label>
+                                                <select id="selectQuienCuota" name="selectQuienCuota" class="form-select" onchange="toggleOtroCuota()">
+                                                    <option value="" selected disabled>Seleccione...</option>
+                                                    <option value="Tutor">Tutor</option>
+                                                    <option value="CMB">CMB</option>
+                                                    <option value="Otro">Otro</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 hidden-field" id="divOtroCuota">
+                                                <label class="form-label fw-bold">Especifique quién *</label>
+                                                <input type="text" id="inputOtroCuota" name="inputOtroCuota" class="form-control uppercase clean-input" placeholder="Nombre o cargo">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold">Observaciones al respecto *</label>
+                                                <textarea id="observacionesCuota" name="observacionesCuota" class="form-control uppercase clean-input" rows="2" placeholder="Describa la situación solicitada..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">¿Cuántos alumnos puede atender por clase? *</label>
+                                <input type="number" id="capacidad_total_tutor" name="capacidad_total_tutor" class="form-control" required min="1" step="1" placeholder="Ej. 15">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">¿Cuántos alumnos CONFIRMAS que puedan atender por clase? *</label>
+                                <input type="number" id="capacidad_confirmada" name="capacidad_confirmada" class="form-control" required min="1" step="1" placeholder="Ej. 15">
+                            </div>
+
+                            <div class="col-12 mt-3">
+                                <div id="boxInfra" class="box-validation">
+                                    <label class="form-label fw-bold">El gimnasio cuenta con: *</label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check"><input class="form-check-input check-equipamiento" type="checkbox" name="equipamiento_gimnasio" id="c1" value="Espacio techado"><label class="form-check-label" for="c1">1. Espacio techado para impartir clase</label></div>
+                                            <div class="form-check"><input class="form-check-input check-equipamiento" type="checkbox" name="equipamiento_gimnasio" id="c2" value="Espacio acompañantes"><label class="form-check-label" for="c2">2. Espacio acompañantes</label></div>
+                                            <div class="form-check"><input class="form-check-input check-equipamiento" type="checkbox" name="equipamiento_gimnasio" id="c3" value="Baño"><label class="form-check-label" for="c3">3. Baño</label></div>
+                                            <div class="form-check"><input class="form-check-input check-equipamiento" type="checkbox" name="equipamiento_gimnasio" id="c4" value="Electricidad"><label class="form-check-label" for="c4">4. Electricidad</label></div>
+                                            <div class="form-check"><input class="form-check-input check-equipamiento" type="checkbox" name="equipamiento_gimnasio" id="c5" value="Material deportivo"><label class="form-check-label" for="c5">5. Material deportivo de Box</label></div>
+                                            <div class="form-check"><input class="form-check-input check-equipamiento" type="checkbox" name="equipamiento_gimnasio" id="c6" value="Ninguno de los anteriores"><label class="form-check-label" for="c6">6. Ninguno de los anteriores</label></div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" id="validarChecksEquipamiento" name="equipamiento_gimnasio" required>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="selectCumpleHorario" name="selectCumpleHorario">
+                            
+                            <div id="contenedorMatriz" class="col-12 mb-4">
+                                <label class="form-label fw-bold text-primary">Horarios en los que impartirá clases de Lunes a Viernes *</label>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered align-middle bg-white">
+                                        <thead>
+                                            <tr class="table-dark text-center">
+                                                <th>DÍA</th>
+                                                <th>Horarios (Mín. 1 clase)</th>
+                                                <th>NO PUEDE</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tablaCuerpoHorarios"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <div id="boxDifusion" class="box-validation shadow-sm">
+                                    <label class="form-label fw-bold">¿Cuáles son los medios que utiliza la o el Tutor(a) para difundir sus clases? *</label>
+                                    <div class="form-check mb-2"><input class="form-check-input check-difusion" type="checkbox" name="medios_difusion" value="Digitales"><label class="form-check-label">Medios digitales (Sitios web, Facebook, etc...)</label></div>
+                                    <div class="form-check mb-2"><input class="form-check-input check-difusion" type="checkbox" name="medios_difusion" value="Escritos"><label class="form-check-label">Escritos (Folletos, carteles, etc..)</label></div>
+                                    <div class="form-check mb-2"><input class="form-check-input check-difusion" type="checkbox" name="medios_difusion" value="RadioTV"><label class="form-check-label">Radio y/o televisión</label></div>
+                                    <div class="form-check mb-2"><input class="form-check-input check-difusion" type="checkbox" name="medios_difusion" value="Boca"><label class="form-check-label">De boca en boca</label></div>
+                                    <div class="form-check mb-2"><input class="form-check-input check-difusion" type="checkbox" name="medios_difusion" value="Ninguno"><label class="form-check-label">Ninguno</label></div>
+                                    <div class="form-check mb-2"><input class="form-check-input check-difusion" type="checkbox" id="difOtro" value="Otro" onchange="document.getElementById('divOtroDifusion').style.display = this.checked ? 'block' : 'none'; document.getElementById('inputOtroDifusion').required = this.checked;"><label class="form-check-label">Otro</label></div>
+                                    <div id="divOtroDifusion" class="mt-2" style="display:none;"><input type="text" id="inputOtroDifusion" class="form-control uppercase" placeholder="Especifique otro medio..."></div>
+                                    <input type="hidden" id="validarChecksDifusion" name="medios_difusion" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div> 
+
+                    <!-- PASO 3 -->
+                    <div class="tab-pane fade" id="pane3">
+                        <span class="section-title">Validación Final de Visita y Documentos</span>
+                        <div class="row g-3">
+                            <div class="col-md-4"><label class="form-label fw-bold text-primary">Evidencia Espacio 1 *</label><input type="file" id="fotoEspacio" name="fotoEspacio" class="form-control" accept="image/*" required></div>
+                            <div class="col-md-4"><label class="form-label fw-bold text-primary">Evidencia Espacio 2 *</label><input type="file" id="fotoEspacio2" name="fotoEspacio2" class="form-control" accept="image/*" required></div>
+                            <div class="col-md-4"><label class="form-label fw-bold text-primary">Evidencia Espacio 3 *</label><input type="file" id="fotoEspacio3" name="fotoEspacio3" class="form-control" accept="image/*" required></div>
+
+                            <div class="col-md-12 mt-4">
+                                <label class="form-label fw-bold text-primary h6">Comprobante de domicilio de la SUCURSAL *</label>
+                                <input type="file" id="fotoComprobanteSucursal" name="fotoComprobanteSucursal" class="form-control" accept="image/*,.pdf" required>
+                            </div>
+
+                            <div class="col-md-6 mt-4">
+                                <label class="form-label fw-bold">¿El código de conducta fue firmado por el tutor? *</label>
+                                <select id="selectCodigoFirmado" name="selectCodigoFirmado" class="form-select" onchange="gestionarCargaCodigo()" required><option value="" selected disabled>...</option><option value="SÍ">SÍ</option><option value="NO">NO</option></select>
+                            </div>
+
+                            <div id="contenedorDocumentacion" class="row g-3">
+                                <div class="col-md-6"><label class="form-label fw-bold text-primary">Anverso Código CMB *</label><input type="file" id="fotoCodigoAnverso" name="fotoCodigoAnverso" class="form-control" accept="image/*" required></div>
+                                <div class="col-md-6"><label class="form-label fw-bold text-primary">Reverso Código CMB *</label><input type="file" id="fotoCodigoReverso" name="fotoCodigoReverso" class="form-control" accept="image/*" required></div>
+                            </div>
+
+                            <span class="section-title mt-4">Evidencia Documental (No Obligatoria)</span>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-primary">Comprobante de domicilio PERSONAL (Tutor)</label>
+                                    <input type="file" id="fotoComprobante" name="fotoComprobante" class="form-control" accept="image/*,.pdf">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Evidencia fotográfica complementaria...</label>
+                                    <input type="file" id="fotoComplementaria" name="fotoComplementaria" class="form-control" accept="image/*">
+                                </div>
+                            </div>
+                            <button type="submit" id="btnFinalizar" class="btn btn-primary w-100 mt-4 p-3 fw-bold">FINALIZAR REPORTE</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalConfirmacionCDD" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title fw-bold">⚠️ Documento Faltante</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Confirmas que quieres enviar el formulario <strong>SIN</strong> cargar el Comprobante de Domicilio Personal del Tutor?</p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Regresar</button>
+        <button type="button" class="btn btn-primary fw-bold" id="btnConfirmarEnvioSinCDD">Sí, enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
