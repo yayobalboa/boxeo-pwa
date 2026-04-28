@@ -1,7 +1,8 @@
 // ==========================================
 // CONFIGURACIÓN DE LA PWA Y LA API
 // ==========================================
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyI0-gSyeSI4UpBWQINfatmK8iULJBPwRJE-BVIpXIp57SXbeM-vrO2VP739yGdWpKM/exec"; // <-- ¡PEGA TU URL AQUÍ!
+// ¡Tu URL ya está insertada aquí correctamente!
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyI0-gSyeSI4UpBWQINfatmK8iULJBPwRJE-BVIpXIp57SXbeM-vrO2VP739yGdWpKM/exec";
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -11,7 +12,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Simulador de google.script.run usando Fetch API Mejorado
 const server = {
     getDatos: async function(successCallback, failureCallback) {
         try {
@@ -19,8 +19,8 @@ const server = {
                 method: "GET",
                 redirect: "follow"
             });
-            const text = await res.text(); // Leemos como texto primero para evitar errores
-            const data = JSON.parse(text); // Lo convertimos a JSON
+            const text = await res.text(); 
+            const data = JSON.parse(text); 
             if(successCallback) successCallback(data);
         } catch (e) {
             console.error("Error en getDatos:", e);
@@ -31,7 +31,7 @@ const server = {
         try {
             const res = await fetch(GAS_URL, {
                 method: "POST",
-                redirect: "follow", // <-- CLAVE PARA GOOGLE APPS SCRIPT
+                redirect: "follow", 
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             });
@@ -101,23 +101,29 @@ window.addEventListener('load', () => {
     const ahora = new Date();
     const str = ahora.toLocaleString('es-MX').replace(/,/g, "");
     if(document.getElementById('timestamp')) document.getElementById('timestamp').value = str;
-    if(document.getElementById('bannerFecha')) document.getElementById('bannerFecha').innerText = "Fecha y hora de inicio: " + str;
+    
+    const banner = document.getElementById('bannerFecha');
+    if(banner) {
+        banner.innerText = "Sincronizando con base de datos...";
+    }
 
-    // Llamada al Backend (Reemplazo de google.script.run.obtenerDatosGimnasios)
+    // Llamada al Backend de Google
     server.getDatos(
         (data) => {
             if(data.ERROR) { 
                 console.error(data.ERROR);
-                alert("Error cargando catálogos. Intenta recargar la página.\n" + data.ERROR); 
+                if(banner) banner.innerHTML = "❌ Error de conexión. <button onclick='location.reload()'>Reintentar</button>";
                 return; 
             }
+            if(banner) banner.innerText = "Fecha y hora de inicio: " + str;
+            
             bdGimnasios = data.bdGimnasios || {};
             catEdoMun = data.catEdoMun || {};
             inicializarBuscador();
             inicializarBuscadorDireccion();
         },
         (err) => {
-            alert("Hubo un fallo de red al conectar con la base de datos. Verifica tu conexión e intenta recargar la página.");
+            if(banner) banner.innerHTML = "❌ Fallo de red. <button class='btn btn-sm btn-danger' onclick='location.reload()'>Reintentar</button>";
         }
     );
 
@@ -141,7 +147,6 @@ function capturarGeolocalizacion() {
 // LÓGICA ANTI-CONTRADICCIÓN DE CASILLAS
 // ==========================================
 function configurarBloqueoCasillas() {
-    // 1. Equipamiento
     const eqChecks = document.querySelectorAll('.check-equipamiento');
     const eqNinguno = Array.from(eqChecks).find(c => c.value === 'Ninguno de los anteriores');
     if(eqNinguno) {
@@ -154,7 +159,6 @@ function configurarBloqueoCasillas() {
         }));
     }
 
-    // 2. Difusión
     const difChecks = document.querySelectorAll('.check-difusion');
     const difNinguno = Array.from(difChecks).find(c => c.value === 'Ninguno');
     const divOtroDif = document.getElementById('divOtroDifusion');
@@ -164,9 +168,8 @@ function configurarBloqueoCasillas() {
         difChecks.forEach(c => c.addEventListener('change', (e) => {
             if (e.target === difNinguno && e.target.checked) {
                 difChecks.forEach(o => { if(o !== difNinguno) o.checked = false; });
-                divOtroDif.style.display = 'none';
-                inOtroDif.required = false;
-                inOtroDif.value = "";
+                if(divOtroDif) divOtroDif.style.display = 'none';
+                if(inOtroDif) { inOtroDif.required = false; inOtroDif.value = ""; }
             } else if (e.target !== difNinguno && e.target.checked) {
                 difNinguno.checked = false;
             }
@@ -284,7 +287,7 @@ function liberarBotonSubmit() {
 }
 
 // ==========================================
-// TABLA DE HORARIOS Y DESPLEGABLES (REDUCIDOS PARA ESPACIO, SON LOS MISMOS)
+// TABLA DE HORARIOS
 // ==========================================
 function obtenerOpcionesHoras() {
     let opciones = '<option value="" selected disabled>Seleccione...</option>';
@@ -325,8 +328,12 @@ function bloquearFila(dia, cb) {
     document.getElementById(`btn-add-${dia}`).disabled = cb.checked;
 }
 
+// ==========================================
+// LOGICA DE CAMPOS Y DESPLEGABLES
+// ==========================================
 function inicializarBuscador() {
     const selectEstado = document.getElementById('selectEstado');
+    if(!selectEstado) return;
     selectEstado.innerHTML = '<option value="" disabled selected>Seleccione Estado...</option>';
     Object.keys(bdGimnasios).sort().forEach(edo => selectEstado.add(new Option(edo, edo)));
 }
@@ -349,7 +356,7 @@ function cargarGimnasios() {
     const municipioSel = document.getElementById('selectMunicipio').value;
     const selectGim = document.getElementById('selectGimnasio');
     selectGim.innerHTML = '<option value="" disabled selected>Seleccione...</option>';
-    if (bdGimnasios[estadoSel][municipioSel]) {
+    if (bdGimnasios[estadoSel] && bdGimnasios[estadoSel][municipioSel]) {
         selectGim.disabled = false;
         bdGimnasios[estadoSel][municipioSel].forEach(gim => {
             let opt = new Option(gim.nombre, gim.nombre);
@@ -402,6 +409,7 @@ function evaluarDomicilio() {
 
 function inicializarBuscadorDireccion() {
     const selectEdo = document.getElementById('dir_estado');
+    if(!selectEdo) return;
     selectEdo.innerHTML = '<option value="" disabled selected>Estado...</option>';
     Object.keys(catEdoMun).sort().forEach(edo => selectEdo.add(new Option(edo, edo)));
 }
@@ -415,9 +423,10 @@ function cargarMunicipiosDireccion() {
 }
 
 function concatenarDireccion() {
-    const getV = (id) => document.getElementById(id).value.toUpperCase().trim();
+    const getV = (id) => document.getElementById(id) ? document.getElementById(id).value.toUpperCase().trim() : "";
     const fullDir = `CALLE: ${getV('dir_calle')} NO.EXT: ${getV('dir_ext')} NO.INT: ${getV('dir_int')} COL: ${getV('dir_colonia')} CP: ${getV('dir_cp')} EDO: ${getV('dir_estado')} MUN: ${getV('dir_municipio')}`;
-    document.getElementById('inputDireccionOtros').value = fullDir;
+    const inp = document.getElementById('inputDireccionOtros');
+    if(inp) inp.value = fullDir;
 }
 
 function actualizarContador(el, min, counterId) {
@@ -457,7 +466,7 @@ function gestionarCargaCodigo() {
 }
 
 // ==========================================
-// KILL SWITCHES 
+// KILL SWITCHES (Lógica de "Barredora")
 // ==========================================
 function evaluarKillSwitches() {
     if (archivosEnProceso > 0) return; 
@@ -485,7 +494,9 @@ function evaluarKillSwitches() {
         btnSubmit.innerText = "FINALIZAR REPORTE";
     }
 
-    if (killId) { aplicarBarredoraDOM(killId, killReasonGlobal, exceptions); }
+    if (killId) {
+        aplicarBarredoraDOM(killId, killReasonGlobal, exceptions);
+    }
 }
 
 function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
@@ -497,7 +508,8 @@ function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
         if (exceptIDs.includes(el.id)) continue; 
 
         el.required = false;
-        el.closest('div[class^="col-"], div.box-validation').classList.add('section-disabled');
+        const box = el.closest('div[class^="col-"], div.box-validation');
+        if(box) box.classList.add('section-disabled');
 
         if (el.type === "file") {
             urlsArchivosSubidos[el.id] = reason;
@@ -506,7 +518,9 @@ function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
             el.value = reason;
         } else if (el.type === "checkbox" || el.type === "radio") {
             el.checked = false;
-        } else { el.value = reason; }
+        } else {
+            el.value = reason;
+        }
     }
 }
 
@@ -514,18 +528,23 @@ function rehabilitarTodo() {
     form.querySelectorAll('.section-disabled').forEach(el => el.classList.remove('section-disabled'));
     const allElements = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
     allElements.forEach(el => {
-        if (el.value.startsWith("Cuestionario cerrado")) {
-            if (el.tagName === "SELECT") el.value = ""; else el.value = "";
+        if (el.value && el.value.startsWith("Cuestionario cerrado")) {
+            if (el.tagName === "SELECT") el.value = "";
+            else el.value = "";
         }
         if (el.type === "file" && urlsArchivosSubidos[el.id] && urlsArchivosSubidos[el.id].startsWith("Cuestionario cerrado")) {
             delete urlsArchivosSubidos[el.id];
         }
     });
-    toggleSubTipoEspacio(); evaluarDomicilio(); toggleCuotaDetalles(); gestionarCargaCodigo();
+    
+    toggleSubTipoEspacio();
+    evaluarDomicilio();
+    toggleCuotaDetalles();
+    gestionarCargaCodigo();
 }
 
 // ==========================================
-// INDEXED DB PWA 
+// INDEXED DB (MOTOR DE ALMACENAMIENTO MASIVO)
 // ==========================================
 const DB_NAME = "BoxeandoDB_v2";
 const STORE_NAME = "reportes_pendientes";
@@ -543,7 +562,9 @@ function initDB() {
             };
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
-        } catch (err) { reject(err); }
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 
@@ -553,7 +574,9 @@ async function guardarEnLocal(datos) {
         const db = await initDB();
         const tx = db.transaction(STORE_NAME, "readwrite");
         tx.objectStore(STORE_NAME).put(datos);
-        tx.oncomplete = () => { actualizarContadorCola(); };
+        tx.oncomplete = () => {
+            actualizarContadorCola();
+        };
     } catch (error) {
         console.error("Fallo de IndexedDB:", error);
         let cola = JSON.parse(localStorage.getItem('fallback_boxeo') || "[]");
@@ -575,7 +598,10 @@ async function revisarPendientes() {
         
         request.onsuccess = () => {
             const pendientes = request.result;
-            if (pendientes.length === 0) { actualizarContadorCola(); return; }
+            if (pendientes.length === 0) {
+                actualizarContadorCola();
+                return;
+            }
 
             isSyncing = true;
             const itemToSync = pendientes[0];
@@ -590,12 +616,19 @@ async function revisarPendientes() {
                             isSyncing = false;
                             revisarPendientes(); 
                         };
-                    } else { isSyncing = false; }
+                    } else {
+                        isSyncing = false; 
+                    }
                 },
-                (err) => { isSyncing = false; }
+                (err) => {
+                    isSyncing = false; 
+                }
             );
         };
-    } catch (e) { console.error("Error leyendo IndexedDB", e); isSyncing = false; }
+    } catch (e) {
+        console.error("Error leyendo IndexedDB", e);
+        isSyncing = false;
+    }
 }
 
 async function actualizarContadorCola() {
@@ -612,9 +645,13 @@ async function actualizarContadorCola() {
             if (pendientesCountGlobal > 0) {
                 badge.style.display = 'block';
                 document.getElementById('queueCount').innerText = pendientesCountGlobal;
-            } else { badge.style.display = 'none'; }
+            } else {
+                badge.style.display = 'none';
+            }
         };
-    } catch (e) { console.warn("No se pudo actualizar badge", e); }
+    } catch (e) {
+        console.warn("No se pudo actualizar badge", e);
+    }
 }
 
 // ==========================================
@@ -630,7 +667,7 @@ function finalizarYEnviar(formulario) {
 
     if (!navigator.onLine) {
         guardarEnLocal(datosObj);
-        alert("💾 SIN INTERNET: El reporte y sus fotos se guardaron en la memoria del teléfono. Sube cuando tengas señal.");
+        alert("💾 SIN INTERNET: El reporte y sus fotos se guardaron en la memoria profunda del teléfono. No borres los datos del navegador y sube cuando tengas señal.");
         reiniciarFormularioCompleto();
         return;
     }
@@ -649,7 +686,7 @@ function finalizarYEnviar(formulario) {
             guardarEnLocal(datosObj);
             reiniciarFormularioCompleto();
         }
-    );
+    ); 
 }
 
 function recopilarDatos(formulario) {
@@ -672,8 +709,9 @@ function recopilarDatos(formulario) {
 
         const fila = document.getElementById('fila-Lunes_Viernes');
         if (fila) {
-            if(fila.querySelector('.form-check-input').checked) { d.selectCumpleHorario = "LUNES A VIERNES: NO PUEDE"; } 
-            else {
+            if(fila.querySelector('.form-check-input').checked) {
+                d.selectCumpleHorario = "LUNES A VIERNES: NO PUEDE";
+            } else {
                 const horas = Array.from(fila.querySelectorAll('.select-hora')).map(s => s.value).filter(v => v && v !== "NINGUNO");
                 d.selectCumpleHorario = horas.length > 0 ? `LUNES A VIERNES: ${horas.join(", ")}` : "LUNES A VIERNES: S/D";
             }
@@ -681,6 +719,7 @@ function recopilarDatos(formulario) {
     }
 
     for (const key in urlsArchivosSubidos) d["url_" + key] = urlsArchivosSubidos[key];
+    
     return d;
 }
 
@@ -690,10 +729,12 @@ function reiniciarFormularioCompleto() {
     form.removeAttribute('data-cdd-bypass');
     urlsArchivosSubidos = {};
     document.querySelectorAll('span[id^="status_"]').forEach(el => el.remove());
+    
     ['divSubTipoEspacio', 'divObsSubTipo', 'campoDireccionOtros', 'divCuotaDetalles', 'divOtroCuota', 'divOtroDifusion'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.style.display = 'none';
     });
+
     rehabilitarTodo();
     new bootstrap.Tab(document.getElementById('btnTab1')).show();
     evaluarKillSwitches(); 
@@ -739,12 +780,15 @@ form.addEventListener("submit", function(e) {
 
 window.onbeforeunload = function(e) {
     if (!navigator.onLine) {
-        const warningOffline = "ESTÁS SIN SEÑAL. Si recargas o cierras la página, perderás el acceso hasta buscar internet.";
-        e.returnValue = warningOffline; return warningOffline;
+        const warningOffline = "ESTÁS SIN SEÑAL. Si recargas o cierras la página, LA APLICACIÓN DESAPARECERÁ y no podrás continuar hasta buscar internet. ¿Seguro que quieres salir?";
+        e.returnValue = warningOffline;
+        return warningOffline;
     }
+    
     if (pendientesCountGlobal > 0) {
-        const warningQueue = "Tienes reportes pendientes. Si cierras, se enviarán automáticamente cuando vuelvas a abrir la página con internet.";
-        e.returnValue = warningQueue; return warningQueue;
+        const warningQueue = "Tienes reportes pendientes de envío. Si cierras, se enviarán automáticamente cuando vuelvas a abrir la página con internet. ¿Salir de todas formas?";
+        e.returnValue = warningQueue;
+        return warningQueue;
     }
 };
 </script>
