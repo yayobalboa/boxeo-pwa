@@ -11,14 +11,19 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Simulador de google.script.run usando Fetch API
+// Simulador de google.script.run usando Fetch API Mejorado
 const server = {
     getDatos: async function(successCallback, failureCallback) {
         try {
-            const res = await fetch(GAS_URL + "?action=getDatos");
-            const data = await res.json();
+            const res = await fetch(GAS_URL + "?action=getDatos", {
+                method: "GET",
+                redirect: "follow"
+            });
+            const text = await res.text(); // Leemos como texto primero para evitar errores
+            const data = JSON.parse(text); // Lo convertimos a JSON
             if(successCallback) successCallback(data);
         } catch (e) {
+            console.error("Error en getDatos:", e);
             if(failureCallback) failureCallback(e);
         }
     },
@@ -26,13 +31,15 @@ const server = {
         try {
             const res = await fetch(GAS_URL, {
                 method: "POST",
-                mode: "cors", // Importante para CORS
+                redirect: "follow", // <-- CLAVE PARA GOOGLE APPS SCRIPT
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             });
-            const data = await res.json();
+            const text = await res.text();
+            const data = JSON.parse(text);
             if(successCallback) successCallback(data);
         } catch (e) {
+            console.error("Error en postData:", e);
             if(failureCallback) failureCallback(e);
         }
     }
