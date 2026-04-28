@@ -764,7 +764,7 @@ form.addEventListener("submit", function(e) {
     const obsGral = document.getElementById('observaciones_generales');
     if (obsGral.required && obsGral.value.length < 10) {
         new bootstrap.Tab(document.getElementById('btnTab2')).show();
-        return alert("⚠️ Las observaciones generales deben tener al menos 50 caracteres.");
+        return alert("⚠️ Las observaciones generales deben tener al menos 10 caracteres.");
     }
 
     if (!form.checkValidity()) {
