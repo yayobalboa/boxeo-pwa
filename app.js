@@ -164,23 +164,6 @@ function configurarBloqueoCasillas() {
             }
         }));
     }
-
-    const difChecks = document.querySelectorAll('.check-difusion');
-    const difNinguno = Array.from(difChecks).find(c => c.value === 'Ninguno');
-    const divOtroDif = document.getElementById('divOtroDifusion');
-    const inOtroDif = document.getElementById('inputOtroDifusion');
-
-    if(difNinguno) {
-        difChecks.forEach(c => c.addEventListener('change', (e) => {
-            if (e.target === difNinguno && e.target.checked) {
-                difChecks.forEach(o => { if(o !== difNinguno) o.checked = false; });
-                if(divOtroDif) divOtroDif.style.display = 'none';
-                if(inOtroDif) { inOtroDif.required = false; inOtroDif.value = ""; }
-            } else if (e.target !== difNinguno && e.target.checked) {
-                difNinguno.checked = false;
-            }
-        }));
-    }
 }
 
 function procesarArchivoAsync(file, maxWidth = 800, quality = 0.4) {
@@ -387,10 +370,12 @@ function toggleSubTipoEspacio() {
         selSubTipo.required = true; txtObs.required = true;
 
         if (tipo === "Espacio público") {
-            ["Cancha pública", "Parque", "Calle"].forEach(opt => selSubTipo.add(new Option(opt, opt)));
+            ["Cancha pública", "Parque", "Calle", "Camellón", "Bajopuente", "Kiosco", "Plaza pública", "Explanada"].forEach(opt => selSubTipo.add(new Option(opt, opt)));
         } else if (tipo === "Inmueble gubernamental") {
-            ["Edificio municipal", "Edificio de gobierno", "Comisaría", "Deportivo Gubernamental"].forEach(opt => selSubTipo.add(new Option(opt, opt)));
+            ["Edificio de gobierno", "Comisaría", "Deportivo Gubernamental", "Ayuntamiento", "DIF", "Bomberos", "CFE", "Canchas multiusos", "Foros al aire libre", "Patio o jardín de edificio gubernamental", "Explanada"].forEach(opt => selSubTipo.add(new Option(opt, opt)));
             if (estado === "CIUDAD DE MÉXICO") selSubTipo.add(new Option("PILARES", "PILARES"));
+        } else if (tipo === "Espacios Restringidos") {
+            selSubTipo.add(new Option("Unidad habitacional", "Unidad habitacional"));
         }
     }
 }
@@ -441,20 +426,6 @@ function validarNombres() {
     }
 }
 
-function toggleCuotaDetalles() {
-    const si = document.getElementById('selectCuota').value === "SÍ";
-    document.getElementById('divCuotaDetalles').style.display = si ? "block" : "none";
-    document.getElementById('selectQuienCuota').required = si;
-    document.getElementById('observacionesCuota').required = si;
-    if(!si) toggleOtroCuota();
-}
-
-function toggleOtroCuota() {
-    const esOtro = document.getElementById('selectQuienCuota').value === "Otro";
-    document.getElementById('divOtroCuota').style.display = esOtro ? "block" : "none";
-    document.getElementById('inputOtroCuota').required = esOtro;
-}
-
 function gestionarCargaCodigo() {
     const no = document.getElementById('selectCodigoFirmado').value === 'NO';
     document.getElementById('contenedorDocumentacion').style.display = no ? 'none' : 'flex';
@@ -487,7 +458,7 @@ function evaluarKillSwitches() {
     killReasonGlobal = "";
     
     let killId = null;
-    let exceptions = [];
+    let exceptions = ["conclusiones"];
 
     if (document.getElementById('selectAbierta').value === "NO") {
         killReasonGlobal = "Cuestionario cerrado debido a encontrarse la sucursal cerrada";
@@ -496,7 +467,7 @@ function evaluarKillSwitches() {
     } else if (document.getElementById('selectTutorPresente').value === "NO") {
         killReasonGlobal = "Cuestionario cerrado debido a no encontrarse el tutor";
         killId = "selectTutorPresente";
-        exceptions = ["nombrePersonaAtiende", "observaciones_generales"];
+        exceptions.push("nombrePersonaAtiende"); 
         btnSubmit.innerText = "ENVIAR - TUTOR AUSENTE";
     } else if (document.getElementById('selectQuiere').value === "NO") {
         killReasonGlobal = "Cuestionario cerrado debido a que el Tutor declara no querer participar";
@@ -531,7 +502,7 @@ function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
         } else if (el.type === "checkbox" || el.type === "radio") {
             el.checked = false;
         } else {
-            if(el.type === "email") el.type = "text"; // Evitar error HTML5
+            if(el.type === "email") el.type = "text"; 
             el.value = reason;
         }
     }
@@ -544,7 +515,7 @@ function rehabilitarTodo() {
         if (el.value && el.value.startsWith("Cuestionario cerrado")) {
             if (el.tagName === "SELECT") el.value = "";
             else el.value = "";
-            if(el.id.includes("email")) el.type = "email"; // Restaurar tipo
+            if(el.id.includes("email")) el.type = "email"; 
         }
         if (el.type === "file" && urlsArchivosSubidos[el.id] && urlsArchivosSubidos[el.id].startsWith("Cuestionario cerrado")) {
             delete urlsArchivosSubidos[el.id];
@@ -553,9 +524,7 @@ function rehabilitarTodo() {
     
     toggleSubTipoEspacio();
     evaluarDomicilio();
-    toggleCuotaDetalles();
     gestionarCargaCodigo();
-    
     if (document.getElementById('selectCoincideGym')) toggleCoincideGym();
 }
 
@@ -693,14 +662,9 @@ function recopilarDatos(formulario) {
 
     if (killReasonGlobal !== "") {
         if (document.getElementById('boxInfra').classList.contains('section-disabled')) d.equipamiento_gimnasio = killReasonGlobal;
-        if (document.getElementById('boxDifusion').classList.contains('section-disabled')) d.medios_difusion = killReasonGlobal;
         if (document.getElementById('contenedorMatriz').classList.contains('section-disabled')) d.selectCumpleHorario = killReasonGlobal;
     } else {
         d.equipamiento_gimnasio = Array.from(document.querySelectorAll('.check-equipamiento:checked')).map(c => c.value).join(', ') || "-";
-        d.medios_difusion = Array.from(document.querySelectorAll('.check-difusion:checked')).map(c => {
-            if(c.id === 'difOtro') return "Otro (" + document.getElementById('inputOtroDifusion').value.trim().toUpperCase() + ")";
-            return c.value;
-        }).join(', ') || "-";
 
         const fila = document.getElementById('fila-Lunes_Viernes');
         if (fila) {
@@ -725,7 +689,7 @@ function reiniciarFormularioCompleto() {
     urlsArchivosSubidos = {};
     document.querySelectorAll('span[id^="status_"]').forEach(el => el.remove());
     
-    ['divSubTipoEspacio', 'divObsSubTipo', 'campoDireccionOtros', 'divCuotaDetalles', 'divOtroCuota', 'divOtroDifusion', 'divNuevoGym'].forEach(id => {
+    ['divSubTipoEspacio', 'divObsSubTipo', 'campoDireccionOtros', 'divNuevoGym'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.style.display = 'none';
     });
@@ -747,24 +711,23 @@ form.addEventListener("submit", function(e) {
         return alert("⚠️ Las observaciones del sub-tipo de espacio deben tener al menos 10 caracteres.");
     }
 
-    // Validar correos
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const emailTutor = document.getElementById('email_tutor');
     const emailAdic = document.getElementById('email_adicional');
     
-    if (emailTutor.required && emailTutor.value && !emailTutor.value.startsWith("Cuestionario cerrado") && !emailRegex.test(emailTutor.value)) {
+    if (emailTutor && emailTutor.required && emailTutor.value && !emailTutor.value.startsWith("Cuestionario cerrado") && !emailRegex.test(emailTutor.value)) {
         new bootstrap.Tab(document.getElementById('btnTab2')).show();
         return alert("⚠️ El Correo electrónico del tutor no tiene un formato válido (ej. correo@dominio.com).");
     }
-    if (emailAdic.required && emailAdic.value && !emailAdic.value.startsWith("Cuestionario cerrado") && !emailRegex.test(emailAdic.value)) {
+    if (emailAdic && emailAdic.required && emailAdic.value && !emailAdic.value.startsWith("Cuestionario cerrado") && !emailRegex.test(emailAdic.value)) {
         new bootstrap.Tab(document.getElementById('btnTab2')).show();
         return alert("⚠️ El Correo electrónico adicional no tiene un formato válido.");
     }
 
-    const obsGral = document.getElementById('observaciones_generales');
-    if (obsGral.required && obsGral.value.length < 10) {
-        new bootstrap.Tab(document.getElementById('btnTab2')).show();
-        return alert("⚠️ Las observaciones generales deben tener al menos 10 caracteres.");
+    const concl = document.getElementById('conclusiones');
+    if (concl && concl.required && concl.value.length < 50) {
+        new bootstrap.Tab(document.getElementById('btnTab3')).show();
+        return alert("⚠️ Las conclusiones deben tener al menos 50 caracteres.");
     }
 
     if (!form.checkValidity()) {
