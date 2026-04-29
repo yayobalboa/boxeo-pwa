@@ -65,7 +65,7 @@
                 
                 <div class="tab-content">
                     
-                    <!-- PASO 1 -->
+                    <!-- PASO 1: GENERALES CON KILL SWITCHES AL FINAL -->
                     <div class="tab-pane fade show active" id="pane1">
                         <span class="section-title">Información del Servidor Público y Gimnasio</span>
                         <div class="row g-3">
@@ -109,6 +109,11 @@
                                 <textarea id="obs_subtipo" name="obs_subtipo" class="form-control uppercase clean-input" rows="2" placeholder="Describe detalladamente e incluye el nombre de la dependencia, del parque, plaza, etcétera" oninput="actualizarContador(this, 10, 'counter_subtipo')"></textarea>
                             </div>
 
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Nombre de Tutor</label>
+                                <input type="text" id="inputTutorRegistro" name="inputTutorRegistro" class="form-control bg-light" readonly placeholder="Se asigna automáticamente">
+                            </div>
+                            
                             <div class="col-12">
                                 <div id="boxDomicilio" class="box-validation">
                                     <p class="fw-bold text-primary mb-2">VERIFICACIÓN DE DOMICILIO</p>
@@ -168,17 +173,12 @@
                         </div>
                     </div>
 
-                    <!-- PASO 2 -->
+                    <!-- PASO 2: TUTOR Y OPERACIÓN -->
                     <div class="tab-pane fade" id="pane2">
                         <span class="section-title">Datos del Tutor y Operatividad</span>
                         <div class="row g-3">
                             
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Nombre de Tutor (Registrado)</label>
-                                <input type="text" id="inputTutorRegistro" name="inputTutorRegistro" class="form-control bg-light" readonly placeholder="Se asigna automáticamente">
-                            </div>
-                            
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <label class="form-label fw-bold">Nombre de quien atiende *</label>
                                 <input type="text" id="nombrePersonaAtiende" name="nombrePersonaAtiende" class="form-control uppercase clean-input" required onblur="validarNombres()">
                             </div>
@@ -193,6 +193,7 @@
                                 </div>
                             </div>
                             
+                            <!-- CORREOS UBICADOS DESPUÉS DE LA FOTO DEL TUTOR -->
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Correo electrónico del tutor *</label>
                                 <input type="email" id="email_tutor" name="email_tutor" class="form-control validate-email" required placeholder="ejemplo@correo.com" pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$">
@@ -246,7 +247,7 @@
                         </div>
                     </div> 
 
-                    <!-- PASO 3 -->
+                    <!-- PASO 3: CIERRE -->
                     <div class="tab-pane fade" id="pane3">
                         <span class="section-title">Validación Final de Visita y Documentos</span>
                         <div class="row g-3">
