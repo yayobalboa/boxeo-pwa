@@ -1,4 +1,4 @@
-const CACHE_NAME = 'boxeo-pwa-v12'; 
+const CACHE_NAME = 'boxeo-pwa-v13'; 
 const urlsToCache = [
   '/',
   '/index.html',
