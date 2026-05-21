@@ -483,19 +483,27 @@ function evaluarKillSwitches() {
 }
 
 function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
-    const allElements = Array.from(form.querySelectorAll('input:not([type="hidden"]), select, textarea'));
+    // Le quitamos la exclusión de "hidden" para que atrape los validadores ocultos
+    const allElements = Array.from(form.querySelectorAll('input, select, textarea'));
     const triggerIndex = allElements.findIndex(el => el.id === triggerId);
     
     for (let i = triggerIndex + 1; i < allElements.length; i++) {
         const el = allElements[i];
         if (exceptIDs.includes(el.id)) continue; 
 
-        el.required = false;
+        // 🍎 ARREGLO PARA iOS (Safari): Guardar estado y quitar 'required' forzosamente
+        if (el.required || el.hasAttribute('required')) {
+            el.setAttribute('data-was-required', 'true');
+            el.required = false;
+            el.removeAttribute('required');
+        }
+
         const box = el.closest('div[class^="col-"], div.box-validation');
         if(box) box.classList.add('section-disabled');
 
         if (el.type === "file") {
             urlsArchivosSubidos[el.id] = reason;
+            el.value = ""; // Limpiar archivo residual en iOS
         } else if (el.tagName === "SELECT") {
             if (!Array.from(el.options).some(o => o.value === reason)) el.add(new Option(reason, reason));
             el.value = reason;
@@ -510,12 +518,22 @@ function aplicarBarredoraDOM(triggerId, reason, exceptIDs) {
 
 function rehabilitarTodo() {
     form.querySelectorAll('.section-disabled').forEach(el => el.classList.remove('section-disabled'));
-    const allElements = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+    
+    // Restaurar incluyendo los ocultos
+    const allElements = form.querySelectorAll('input, select, textarea');
     allElements.forEach(el => {
+        
+        // 🍎 ARREGLO PARA iOS: Devolverle el 'required' si el usuario cambia de opinión a "SÍ"
+        if (el.getAttribute('data-was-required') === 'true') {
+            el.required = true;
+            el.setAttribute('required', 'required');
+            el.removeAttribute('data-was-required');
+        }
+
         if (el.value && el.value.startsWith("Cuestionario cerrado")) {
             if (el.tagName === "SELECT") el.value = "";
             else el.value = "";
-            if(el.id.includes("email")) el.type = "email"; 
+            if(el.id && el.id.includes("email")) el.type = "email"; 
         }
         if (el.type === "file" && urlsArchivosSubidos[el.id] && urlsArchivosSubidos[el.id].startsWith("Cuestionario cerrado")) {
             delete urlsArchivosSubidos[el.id];
